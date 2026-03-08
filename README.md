@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Event Countdown Collection
 
-## Getting Started
+A custom-built countdown manager for important moments: launches, deadlines, birthdays, and everything in between.
 
-First, run the development server:
+## Tech Stack
+
+- Next.js (App Router with `src/app`)
+- TypeScript
+- Tailwind CSS
+- Browser `localStorage` for persistence
+
+## What I Built
+
+- A single-page countdown app with:
+  - create flow (name, date/time, optional description)
+  - edit and delete actions
+  - multiple countdown cards updating every second
+- Persistent data using `localStorage` so events survive refreshes.
+- A visual urgency system:
+  - `Critical` (within 24h)
+  - `Soon` (within 7 days)
+  - `Upcoming` (within 30 days)
+  - `Far away`
+  - `Passed`
+- Time passage visualization per event using a progress meter from event creation time to event deadline.
+
+## Why These Choices
+
+- I kept everything on the client to match the no-backend requirement and keep setup friction low.
+- The layout separates “create/manage” from “monitor” so creating events feels focused while tracking remains scan-friendly.
+- Urgency colors and badges help users quickly understand what matters now versus later.
+- A live counter (days/hours/minutes/seconds) plus a progress meter makes time feel both concrete and directional.
+
+## UX + Design Notes
+
+- Glassy cards, gradient urgency states, and soft depth create contrast without looking like a default dashboard template.
+- Buttons and controls are intentionally straightforward for fast repeated entry/edit cycles.
+- Empty state is explicit and inviting so first-run experience is clear.
+
+## What I’d Improve With More Time
+
+- Add drag-to-prioritize manual ordering in addition to date sorting.
+- Add lightweight event categories (work, personal, launch) with filters.
+- Add small motion transitions for card insert/update/remove states.
+- Support optional recurring events for birthdays/annual milestones.
+
+## Challenges Faced
+
+- Balancing “interesting visual style” with readability when many cards are shown at once.
+- Designing urgency rules that feel useful without being noisy or over-alerting.
+- Keeping the code simple while still including edit mode, progress logic, and persistence.
+
+## Approximate Time Spent
+
+- ~3 to 4 hours
+
+## Run Locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Build Check
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run lint
+npm run build
+```
