@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faChevronLeft,
+  faChevronRight,
+  faPenToSquare,
+  faTrashCan,
+} from "@fortawesome/free-solid-svg-icons";
 
 type CountdownEvent = {
   id: string;
@@ -145,15 +152,7 @@ function parseDateInputToLocalMidnight(value: string) {
   const match = value.trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if (match) {
     const [, year, month, day] = match;
-    return new Date(
-      Number(year),
-      Number(month) - 1,
-      Number(day),
-      0,
-      0,
-      0,
-      0,
-    );
+    return new Date(Number(year), Number(month) - 1, Number(day), 0, 0, 0, 0);
   }
   const fallback = new Date(value);
   if (Number.isNaN(fallback.getTime())) return null;
@@ -194,20 +193,61 @@ function urgencyLabel(milliseconds: number) {
   return "Far away";
 }
 
+function urgencyRank(milliseconds: number) {
+  const label = urgencyLabel(milliseconds);
+  if (label === "Critical") return 0;
+  if (label === "Soon") return 1;
+  if (label === "Upcoming") return 2;
+  if (label === "Far away") return 3;
+  return 4;
+}
+
 function urgencyStyles(label: string) {
   if (label === "Critical") {
-    return "from-rose-500/20 to-red-600/10 border-rose-300/40 ring-rose-400/40";
+    return "from-rose-500/30 to-red-500/15 border-rose-300/50 ring-rose-400/50";
   }
   if (label === "Soon") {
-    return "from-amber-400/20 to-orange-500/10 border-amber-300/40 ring-amber-300/40";
+    return "from-amber-400/28 to-orange-500/15 border-amber-300/50 ring-amber-300/50";
   }
   if (label === "Upcoming") {
-    return "from-sky-400/20 to-indigo-500/10 border-sky-300/40 ring-sky-300/40";
+    return "from-sky-400/20 to-indigo-500/12 border-sky-300/45 ring-sky-300/45";
   }
   if (label === "Passed") {
-    return "from-zinc-400/20 to-zinc-500/10 border-zinc-300/40 ring-zinc-300/40";
+    return "from-zinc-300/25 to-zinc-400/15 border-zinc-300/60 ring-zinc-300/50";
   }
-  return "from-violet-400/20 to-fuchsia-500/10 border-violet-300/40 ring-violet-300/40";
+  return "from-violet-300/18 to-fuchsia-400/10 border-violet-300/35 ring-violet-200/40";
+}
+
+function urgencyBadgeStyles(label: string) {
+  if (label === "Critical") {
+    return "border-rose-300 bg-rose-100 text-rose-700";
+  }
+  if (label === "Soon") {
+    return "border-amber-300 bg-amber-100 text-amber-700";
+  }
+  if (label === "Upcoming") {
+    return "border-sky-300 bg-sky-100 text-sky-700";
+  }
+  if (label === "Passed") {
+    return "border-zinc-300 bg-zinc-100 text-zinc-700";
+  }
+  return "border-violet-300 bg-violet-100 text-violet-700";
+}
+
+function urgencyBarStyles(label: string) {
+  if (label === "Critical") {
+    return "bg-rose-500";
+  }
+  if (label === "Soon") {
+    return "bg-amber-500";
+  }
+  if (label === "Upcoming") {
+    return "bg-sky-500";
+  }
+  if (label === "Passed") {
+    return "bg-zinc-400";
+  }
+  return "bg-violet-500";
 }
 
 function progressValue(event: CountdownEvent, now: number) {
@@ -228,6 +268,7 @@ export default function Home() {
   );
   const [formError, setFormError] = useState<string>("");
   const [loaded, setLoaded] = useState(false);
+  const railRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try {
@@ -272,10 +313,18 @@ export default function Home() {
   }, [events, loaded]);
 
   const sortedEvents = useMemo(() => {
-    return [...events].sort(
-      (a, b) => parseEventTime(a.dateTime) - parseEventTime(b.dateTime),
-    );
-  }, [events]);
+    return [...events].sort((a, b) => {
+      const diffA = parseEventTime(a.dateTime) - now;
+      const diffB = parseEventTime(b.dateTime) - now;
+      const rankA = urgencyRank(diffA);
+      const rankB = urgencyRank(diffB);
+
+      if (rankA !== rankB) return rankA - rankB;
+      if (diffA > 0 && diffB > 0) return diffA - diffB;
+      if (diffA <= 0 && diffB <= 0) return diffB - diffA;
+      return diffA - diffB;
+    });
+  }, [events, now]);
 
   function resetDraft() {
     setDraft(buildInitialDraft());
@@ -371,15 +420,27 @@ export default function Home() {
     setPendingDelete(null);
   }
 
+  function scrollCountdowns(direction: "left" | "right") {
+    if (!railRef.current) return;
+    const distance = Math.max(
+      320,
+      Math.floor(railRef.current.clientWidth * 0.7),
+    );
+    railRef.current.scrollBy({
+      left: direction === "right" ? distance : -distance,
+      behavior: "smooth",
+    });
+  }
+
   const criticalCount = sortedEvents.filter((item) => {
     const diff = parseEventTime(item.dateTime) - now;
     return diff > 0 && diff <= 24 * 60 * 60 * 1000;
   }).length;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#fdf4ff_0%,#ecfeff_38%,#f8fafc_100%)] px-4 py-10 text-zinc-900 sm:px-6 lg:px-10">
-      <main className="mx-auto grid w-full max-w-6xl gap-6 md:grid-cols-[340px_1fr] xl:grid-cols-[410px_1fr]">
-        <section className="h-fit rounded-3xl border border-white/80 bg-white/80 p-5 shadow-[0_24px_80px_-30px_rgba(15,23,42,0.3)] backdrop-blur-md sm:p-6">
+    <div className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top,#fdf4ff_0%,#ecfeff_38%,#f8fafc_100%)] px-4 py-10 text-zinc-900 sm:px-6 lg:px-10">
+      <main className="mx-auto grid w-full max-w-6xl min-w-0 gap-6 md:grid-cols-[340px_1fr] xl:grid-cols-[410px_1fr]">
+        <section className="h-fit border border-white/80 bg-white/80 p-5 shadow-[0_24px_80px_-30px_rgba(15,23,42,0.3)] backdrop-blur-md sm:p-6">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
             Event Countdown Collection
           </p>
@@ -545,7 +606,7 @@ export default function Home() {
           </form>
         </section>
 
-        <section className="space-y-3">
+        <section className="relative min-w-0 overflow-hidden">
           {sortedEvents.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-zinc-300 bg-white/70 p-10 text-center backdrop-blur-md">
               <p className="text-lg font-medium text-zinc-800">No events yet</p>
@@ -556,97 +617,138 @@ export default function Home() {
             </div>
           ) : null}
 
-          {sortedEvents.map((item) => {
-            const diff = parseEventTime(item.dateTime) - now;
-            const time = formatDiff(diff);
-            const urgency = urgencyLabel(diff);
-            const meter = progressValue(item, now);
-            return (
-              <article
-                key={item.id}
-                className={`rounded-3xl border bg-linear-to-br p-5 shadow-[0_18px_55px_-28px_rgba(15,23,42,0.35)] backdrop-blur-md transition hover:-translate-y-0.5 sm:p-6 ${urgencyStyles(
-                  urgency,
-                )}`}
+          {sortedEvents.length > 0 ? (
+            <>
+              <div
+                ref={railRef}
+                className="countdown-scroll flex max-w-full snap-x snap-mandatory gap-3 overflow-x-auto pb-3"
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-xl font-semibold text-zinc-900">
-                      {item.name}
-                    </h2>
-                    <p className="mt-1 text-sm text-zinc-600">
-                      {formatAbsoluteDate(item.dateTime)}
-                    </p>
-                  </div>
-                  <span className="rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-zinc-700">
-                    {urgency}
-                  </span>
-                </div>
-
-                {item.description ? (
-                  <p className="mt-3 text-sm leading-relaxed text-zinc-700">
-                    {item.description}
-                  </p>
-                ) : null}
-
-                {diff > 0 ? (
-                  <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    {[
-                      { label: "Days", value: time.days },
-                      { label: "Hours", value: time.hours },
-                      { label: "Min", value: time.minutes },
-                      { label: "Sec", value: time.seconds },
-                    ].map((block) => (
-                      <div
-                        key={block.label}
-                        className="rounded-xl border border-white/70 bg-white/70 px-2 py-3 text-center"
-                      >
-                        <p className="text-2xl font-semibold leading-none text-zinc-900">
-                          {String(block.value).padStart(2, "0")}
-                        </p>
-                        <p className="mt-1 text-[11px] uppercase tracking-wider text-zinc-500">
-                          {block.label}
-                        </p>
+                {sortedEvents.map((item) => {
+                  const diff = parseEventTime(item.dateTime) - now;
+                  const time = formatDiff(diff);
+                  const urgency = urgencyLabel(diff);
+                  const meter = progressValue(item, now);
+                  return (
+                    <article
+                      key={item.id}
+                      className={`w-[min(92vw,30rem)] shrink-0 snap-start rounded-3xl border bg-linear-to-br p-5 shadow-[0_18px_55px_-28px_rgba(15,23,42,0.35)] backdrop-blur-md transition hover:-translate-y-0.5 sm:w-104 ${urgencyStyles(
+                        urgency,
+                      )}`}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h2 className="text-xl font-semibold text-zinc-900">
+                            {item.name}
+                          </h2>
+                          <p className="mt-1 text-sm text-zinc-600">
+                            {formatAbsoluteDate(item.dateTime)}
+                          </p>
+                        </div>
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-widest ${urgencyBadgeStyles(
+                            urgency,
+                          )}`}
+                        >
+                          {urgency}
+                        </span>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="mt-4 rounded-xl border border-white/70 bg-white/70 px-4 py-3 text-sm font-medium text-zinc-700">
-                    This event has passed.
-                  </div>
-                )}
+                      <div
+                        className={`mt-3 h-1.5 w-full rounded-full ${urgencyBarStyles(
+                          urgency,
+                        )}`}
+                      />
 
-                <div className="mt-4">
-                  <div className="mb-1.5 flex items-center justify-between text-xs font-medium uppercase tracking-wider text-zinc-500">
-                    <span>Time passage</span>
-                    <span>{Math.round(meter)}%</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-white/80">
-                    <div
-                      className="h-full rounded-full bg-zinc-900 transition-all"
-                      style={{ width: `${meter}%` }}
-                    />
-                  </div>
-                </div>
+                      {item.description ? (
+                        <p className="mt-3 text-sm leading-relaxed text-zinc-700">
+                          {item.description}
+                        </p>
+                      ) : null}
 
-                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                  <button
-                    type="button"
-                    onClick={() => startEdit(item)}
-                    className="rounded-xl border border-zinc-300 bg-white/80 px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-white sm:flex-1"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPendingDelete(item)}
-                    className="rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100 sm:flex-1"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </article>
-            );
-          })}
+                      {diff > 0 ? (
+                        <div className="mt-4 rounded-2xl border border-white/70 bg-white/60 p-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            {[
+                              { label: "Days", value: time.days },
+                              { label: "Hours", value: time.hours },
+                              { label: "Min", value: time.minutes },
+                              { label: "Sec", value: time.seconds },
+                            ].map((block) => (
+                              <div
+                                key={block.label}
+                                className="rounded-xl border border-white/80 bg-white/80 px-2 py-3 text-center"
+                              >
+                                <p className="text-2xl font-semibold leading-none text-zinc-900">
+                                  {String(block.value).padStart(2, "0")}
+                                </p>
+                                <p className="mt-1 text-[11px] uppercase tracking-wider text-zinc-500">
+                                  {block.label}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-4 rounded-xl border border-white/70 bg-white/70 px-4 py-3 text-sm font-medium text-zinc-700">
+                          This event has passed.
+                        </div>
+                      )}
+
+                      <div className="mt-4">
+                        <div className="mb-1.5 flex items-center justify-between text-xs font-medium uppercase tracking-wider text-zinc-500">
+                          <span>Time passage</span>
+                          <span>{Math.round(meter)}%</span>
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-white/80">
+                          <div
+                            className="h-full rounded-full bg-zinc-900 transition-all"
+                            style={{ width: `${meter}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => startEdit(item)}
+                          aria-label={`Edit ${item.name}`}
+                          title="Edit"
+                          className="grid h-9 w-9 place-items-center rounded-lg border border-zinc-300 bg-white/85 text-sm text-zinc-700 transition hover:bg-white"
+                        >
+                          <FontAwesomeIcon icon={faPenToSquare} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPendingDelete(item)}
+                          aria-label={`Delete ${item.name}`}
+                          title="Delete"
+                          className="grid h-9 w-9 place-items-center rounded-lg border border-rose-300 bg-rose-50 text-sm text-rose-700 transition hover:bg-rose-100"
+                        >
+                          <FontAwesomeIcon icon={faTrashCan} />
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                aria-label="Scroll left"
+                onClick={() => scrollCountdowns("left")}
+                className="absolute left-2 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border border-white/70 bg-white/65 p-2 text-zinc-700 opacity-55 shadow-lg backdrop-blur transition hover:opacity-95 lg:grid"
+              >
+                <FontAwesomeIcon icon={faChevronLeft} />
+              </button>
+              <button
+                type="button"
+                aria-label="Scroll right"
+                onClick={() => scrollCountdowns("right")}
+                className="absolute right-2 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border border-white/70 bg-white/65 p-2 text-zinc-700 opacity-55 shadow-lg backdrop-blur transition hover:opacity-95 lg:grid"
+              >
+                <FontAwesomeIcon icon={faChevronRight} />
+              </button>
+            </>
+          ) : null}
         </section>
       </main>
 

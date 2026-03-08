@@ -22,13 +22,16 @@ A custom-built countdown manager for important moments: launches, deadlines, bir
   - `Upcoming` (within 30 days)
   - `Far away`
   - `Passed`
+- Priority-based ordering so urgent events are shown first (Critical -> Soon -> Upcoming -> Far away -> Passed), with nearest deadlines at the top inside each group.
+- Compact Font Awesome icon actions for edit/delete to keep cards tighter and easier to scan when many events are present.
 - Time passage visualization per event using a progress meter from event creation time to event deadline.
+- Countdown values shown as a clean grid of day/hour/minute/second tiles inside each event card.
 
 ## Why These Choices
 
 - I kept everything on the client to match the no-backend requirement and keep setup friction low.
 - The layout separates “create/manage” from “monitor” so creating events feels focused while tracking remains scan-friendly.
-- Urgency colors and badges help users quickly understand what matters now versus later.
+- Urgency colors, badges, and a visual priority bar help users immediately distinguish far-away events from events that need attention soon.
 - A live counter (days/hours/minutes/seconds) plus a progress meter makes time feel both concrete and directional.
 
 ## UX + Design Notes
